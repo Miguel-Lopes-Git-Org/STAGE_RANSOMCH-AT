@@ -1,5 +1,5 @@
 # Import necessary modules
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import requests
 import os
 from dotenv import load_dotenv
@@ -53,9 +53,9 @@ def get_groups():
 # Route: /api/groups/{group_name}/chats
 # Description: Retrieves the chats of a specific group.
 # Parameters: group_name (str) - the name of the group
-# Returns: JSON object with group name, total chats, and a list of chats (date and message count).
+# Returns: JSON object with group name, total chats, and a list of chats (id_chat, date and message count).
 def get_groups_with_chats(group_name):
-    group_name = group_name.title()  # Format the group name
+
     result = json.loads(search(URL_CHAT_INDEX))  # Retrieve the chat index
 
     # Check if the group exists in the index
@@ -67,13 +67,18 @@ def get_groups_with_chats(group_name):
 
     total_chat_group = result["groups"][group_name]["group_statistics"]["chat_count"]
     # List of chats in the group with formatted date and message count
-    chats = [
-        {
-            "date": datetime.strptime(chat["chat_id"], "%Y%m%d").strftime("%Y-%m-%d"),
+    chats = []
+    for chat in result["groups"][group_name]["chats"]:
+        chat_id = chat["chat_id"]
+        try:
+            date = datetime.strptime(chat_id, "%Y%m%d").strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            date = None
+        chats.append({
+            "id_chat": chat_id,
+            "date": date,
             "messages_count": chat["message_count"],
-        }
-        for chat in result["groups"][group_name]["chats"]
-    ]
+        })
 
     return {
         "group": group_name,
@@ -81,13 +86,13 @@ def get_groups_with_chats(group_name):
         "chats": chats
     }
 
-@app.get("/api/groups/{group_name}/chats/{date}")
-# Route: /api/groups/{group_name}/chats/{date}
-# Description: Retrieves the content of a specific chat from a group on a given date.
-# Parameters: group_name (str) - the name of the group; date (str) - the chat date (format: YYYYMMDD)
+@app.get("/api/groups/{group_name}/chats/{id_chat}")
+# Route: /api/groups/{group_name}/chats/{id_chat}
+# Description: Retrieves the content of a specific chat from a group on a given id_chat.
+# Parameters: group_name (str) - the name of the group; id_chat (str) - the chat id
 # Returns: JSON object with the raw chat content.
-def get_chat(group_name, date):
-    group_name = group_name.title()  # Format the group name
+def get_chat(group_name, id_chat):
+
     result = json.loads(search(URL_CHAT_INDEX))  # Retrieve the chat index
 
     # Check if the group exists in the index
@@ -96,9 +101,9 @@ def get_chat(group_name, date):
     else:
         print("Group not found")
 
-    # Search for the raw chat URL corresponding to the date
+    # Search for the raw chat URL corresponding to the id_chat
     url_chat = next(
-        (chat["raw_url"] for chat in result["groups"][group_name]["chats"] if chat["chat_id"] == date),
+        (chat["raw_url"] for chat in result["groups"][group_name]["chats"] if chat["chat_id"] == id_chat),
         None
     )
     # Retrieve the chat content
