@@ -1,5 +1,7 @@
 # Import necessary modules
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
 from typing import List, Optional
 import requests
@@ -42,7 +44,9 @@ class GroupChatsResponse(BaseModel):
 
 # Create FastAPI app with API key validation and documentation
 app = FastAPI(
-    dependencies=[Depends(auth.validate_api_key)],
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
     title="Chat Groups API",
     description="""
     API to retrieve information about chat groups and their messages.
@@ -56,6 +60,24 @@ app = FastAPI(
     Use this API to access chat data organized by groups. Each group contains multiple chats identified by unique IDs.
     """
 )
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def protected_openapi(api_key: str = Depends(auth.validate_docs_api_key)):
+    return get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+
+@app.get("/docs", include_in_schema=False)
+async def protected_swagger(api_key: str = Depends(auth.validate_docs_api_key)):
+    return get_swagger_ui_html(
+        openapi_url=f"/openapi.json?api_key={api_key}",
+        title=f"{app.title} - Swagger UI",
+    )
 
 #*#################################
 #* Loading environment variables
@@ -92,6 +114,7 @@ def search(url):
     summary="Get all groups",
     description="Retrieve the list of all available groups with their total number of chats.",
     tags=["Groups"],
+    dependencies=[Depends(auth.validate_api_key)],
     responses={
         200: {
             "description": "List of groups retrieved successfully",
@@ -156,6 +179,7 @@ def get_groups():
     summary="Get a list of chats from a specific group",
     description="Retrieve all chats from a specific group with their IDs, dates, and message counts.",
     tags=["Chats"],
+    dependencies=[Depends(auth.validate_api_key)],
     responses={
         200: {
             "description": "Chats retrieved successfully",
@@ -246,6 +270,7 @@ def get_groups_with_chats(group_name: str):
     summary="Get specific chat content",
     description="Retrieve the complete content of a specific chat from a group using the chat ID.",
     tags=["Chats"],
+    dependencies=[Depends(auth.validate_api_key)],
     responses={
         200: {
             "description": "Chat content retrieved successfully",
