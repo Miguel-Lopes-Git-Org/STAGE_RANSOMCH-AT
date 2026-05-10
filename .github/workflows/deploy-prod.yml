@@ -16,7 +16,7 @@ jobs:
       IMAGE_NAME: ransomchat-api
       CONTAINER_NAME: ransomchat-api
       APP_PORT: ${{ vars.APP_PORT || '1010' }}
-      URL_CHAT_INDEX: ${{ vars.URL_CHAT_INDEX }}
+      URL_CHAT_INDEX: ${{ vars.URL_CHAT_INDEX || 'https://raw.githubusercontent.com/Casualtek/Ransomchats/main/chat_index.json' }}
       API_KEY: ${{ secrets.API_KEY }}
 
     steps:

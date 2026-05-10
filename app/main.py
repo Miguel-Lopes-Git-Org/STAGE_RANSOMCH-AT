@@ -90,8 +90,12 @@ async def protected_swagger(api_key: str = Depends(auth.validate_docs_api_key)):
 
 load_dotenv()
 
-# Retrieve the chat index URL from the .env file
-URL_CHAT_INDEX = os.getenv("URL_CHAT_INDEX")
+DEFAULT_CHAT_INDEX_URL = (
+    "https://raw.githubusercontent.com/Casualtek/Ransomchats/main/chat_index.json"
+)
+
+# Retrieve the chat index URL from the .env file, with a public upstream fallback.
+URL_CHAT_INDEX = os.getenv("URL_CHAT_INDEX", DEFAULT_CHAT_INDEX_URL)
 
 
 # Function: search
